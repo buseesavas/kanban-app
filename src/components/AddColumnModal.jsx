@@ -1,8 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { DeleteSvg } from "../Svg";
+import { TodoContext } from "./TodoContext";
 
-export default function AddColumnModal({ closeModal, selectedBoard, updateBoardColumns }) {
+export default function AddColumnModal({ closeModal, selectedBoard }) {
+  const { updateBoardColumns } = useContext(TodoContext); // Context'ten alınır
   const [columns, setColumns] = useState([]);
+  const [isEmptyBoard, setIsEmptyBoard] = useState(
+    selectedBoard?.columns?.length === 0 ||
+    selectedBoard?.columns?.every((col) => col.tasks.length === 0)
+  );  
+  console.log("isEmptyBoard in Modal:", isEmptyBoard);
 
   useEffect(() => {
     if (selectedBoard?.columns) {
@@ -20,20 +27,33 @@ export default function AddColumnModal({ closeModal, selectedBoard, updateBoardC
 
   const deleteColumn = (e, index) => {
     e.preventDefault();
-    setColumns((prev) => prev.filter((_, i) => i !== index));
+    setColumns((prev) => {
+      const updated = prev.filter((_, i) => i !== index);
+      setIsEmptyBoard(updated.length === 0); // ✅ Kolon silindikten sonra kontrol
+      return updated;
+    });
   };
+  
 
   const addColumn = () => {
-    const newColumn = { id: crypto.randomUUID(), name: "", tasks: [] }; 
-    setColumns((prev) => [...prev, newColumn]);
+    const newColumn = { id: crypto.randomUUID(), name: "", tasks: [] };
+    setColumns((prev) => {
+      const updated = [...prev, newColumn];
+      setIsEmptyBoard(updated.length === 0); // ✅ isEmptyBoard'u güncelleyin
+      return updated;
+    });
   };
   
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    updateBoardColumns([...columns]);  // sadece mevcut kolonları gönder
+    const filteredColumns = columns.filter((col) => col.name.trim() !== "");
+  
+    updateBoardColumns(filteredColumns);
     closeModal();
   };
+  
+  
 
   return (
     <div className="addColumnModalOverlay" onClick={closeModal}>

@@ -30,18 +30,59 @@ ul {
   padding: 0;
   margin: 0;
 }
+.dropdown-overlay {
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: transparent;
+  z-index: 5000 !important; /* Dropdown diğer modalın altında */
+}
+
 .modal-overlay {
-  position: fixed;
+  position: fixed !important;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.3);
+  z-index: 6000 !important; /* Modal, dropdown üstünde */
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 4000;
 }
+
+.delete-modal-overlay {
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 7000 !important; /* Delete Modal en üstte */
+  display: flex;
+  align-items: center; /* Dikey ortalar */
+  justify-content: center;
+}
+
+/* Bu container'lar stacking context oluşturmasın */
+.boardPage, 
+.main-content, 
+.boardColumns, 
+.boardColumn {
+  position: relative !important;
+  z-index: 1 !important; /* Modalın altında kalır */
+}
+
+.header, 
+.sideNav-board, 
+.dropdown {
+  z-index: 100 !important; /* Modalın altında kalacak kadar düşük değer */
+}
+
+
+
 
 .modal-content {
   background: white;
@@ -55,6 +96,7 @@ ul {
   overflow: scroll;
   scrollbar-width: none; 
   -ms-overflow-style: none;
+  z-index: 10001 !important; 
 
   form {
     display: flex;
@@ -432,6 +474,8 @@ ul {
   height: 100vh;
   min-height: 100%;
   align-items: stretch;
+  position: relative;
+  z-index: 0;
 }
 
 .todo {
@@ -711,6 +755,7 @@ ul {
   overflow: auto;
   scrollbar-width: none;
   min-height: auto;
+  z-index: 100;
 
   .taskModalCloseBtn {
     position: absolute;
@@ -1192,6 +1237,10 @@ form input {
   font-weight: bold;
   cursor: grabbing;
   opacity: 0.9;
+  position: fixed;
+  z-index: 1100; /* Modalın üzerinde olmalı */
+  pointer-events: none;
+  width: 256px;
 
   .task-title {
     font-weight: 700;
@@ -1233,7 +1282,7 @@ form input {
   overflow: hidden;
   flex: 0 0 280px;
   margin-top: 45px;
-  z-index: 0;
+  z-index: 1;
   border-radius: 7px;
   color: #635fc7;
   font-weight: 700;
@@ -1475,7 +1524,7 @@ form input {
   width: 100vw;
   height: 100vh;
   background-color: rgba(0, 0, 0, 0.5);
-  z-index: 0;
+  z-index: 10000;
 }
 
 li.active button {

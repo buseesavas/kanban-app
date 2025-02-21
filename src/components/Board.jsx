@@ -20,8 +20,15 @@ import {
 import SortableItem from "./SortableItem";
 
 export default function Board() {
-  const { todos, setTodos, setEdit, currentBoard, setCurrentBoard } =
-    useContext(TodoContext);
+  const {
+    todos,
+    setTodos,
+    setEdit,
+    currentBoard,
+    setCurrentBoard,
+    updateBoardColumns,
+    isEmptyBoard,
+  } = useContext(TodoContext);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isColumnModalOpen, setIsColumnModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
@@ -47,17 +54,6 @@ export default function Board() {
   const openTaskModal = (task) => setSelectedTask(task);
   const closeTaskModal = () => setSelectedTask(null);
 
-  const updateBoardColumns = (newColumns) => {
-    if (!currentBoard) return;
-    const updatedBoard = { ...currentBoard, columns: newColumns };
-    setTodos((prevTodos) =>
-      prevTodos.map((board) =>
-        board.id === currentBoard.id ? updatedBoard : board
-      )
-    );
-    setCurrentBoard(updatedBoard);
-  };
-
   const handleBoardCreation = (newBoard) => {
     setTodos((prevTodos) => [...prevTodos, newBoard]);
     setCurrentBoard(newBoard);
@@ -79,10 +75,8 @@ export default function Board() {
       <div className="main-content">
         {currentBoard ? (
           <BoardColumns
-            board={currentBoard}
             openColumnModal={openColumnModal}
             openTaskModal={openTaskModal}
-            updateBoardColumns={updateBoardColumns}
           />
         ) : (
           <p>No board selected.</p>
@@ -104,6 +98,7 @@ export default function Board() {
             closeModal={closeColumnModal}
             selectedBoard={currentBoard}
             updateBoardColumns={updateBoardColumns}
+            isEmptyBoard={isEmptyBoard}
           />
         </Modal>
       )}
@@ -184,17 +179,12 @@ function Sidebar({
   );
 }
 
-function BoardColumns({
-  board,
-  openColumnModal,
-  openTaskModal,
-  updateBoardColumns,
-}) {
-  const [columns, setColumns] = useState(board.columns);
+function BoardColumns({ openColumnModal, openTaskModal }) {
+  const { columns, updateBoardColumns } = useContext(TodoContext); // ✅ Context'ten alın
   const [activeTask, setActiveTask] = useState(null);
-  const [dragging, setDragging] = useState(false);
+  console.log("currentBoard columns:", columns);
 
-  useEffect(() => setColumns(board.columns), [board]);
+  const isEmptyBoard = columns.length === 0;
 
   const handleDragStart = ({ active }) => {
     const foundTask = columns
@@ -220,45 +210,30 @@ function BoardColumns({
       return;
     }
 
-    const sourceColumn = columns[sourceColumnIndex];
-    const destinationColumn = columns[destinationColumnIndex];
+    const sourceColumn = { ...columns[sourceColumnIndex] };
+    const destinationColumn = { ...columns[destinationColumnIndex] };
 
     const oldIndex = sourceColumn.tasks.findIndex(
       (task) => task.id === active.id
     );
-
-    let newIndex;
-
-    // eğer hedef boş column ise, görevi en sona ekleme yap
-    if (
-      over.id === destinationColumn.id &&
-      destinationColumn.tasks.length === 0
-    ) {
-      newIndex = 0;
-    } else {
-      // dolu columnlarda gidecek indexi al
-      newIndex =
-        over.data?.current?.sortable?.index ?? destinationColumn.tasks.length;
-    }
-
-    // görevi taşı
     const [movedTask] = sourceColumn.tasks.splice(oldIndex, 1);
+
+    const newIndex =
+      over.id === destinationColumn.id && destinationColumn.tasks.length === 0
+        ? 0
+        : over.data?.current?.sortable?.index ?? destinationColumn.tasks.length;
+
     destinationColumn.tasks.splice(newIndex, 0, movedTask);
 
     const updatedColumns = columns.map((col, idx) => {
-      if (idx === sourceColumnIndex)
-        return { ...col, tasks: sourceColumn.tasks };
-      if (idx === destinationColumnIndex)
-        return { ...col, tasks: destinationColumn.tasks };
+      if (idx === sourceColumnIndex) return sourceColumn;
+      if (idx === destinationColumnIndex) return destinationColumn;
       return col;
     });
 
-    setColumns(updatedColumns);
-    updateBoardColumns(updatedColumns);
+    updateBoardColumns(updatedColumns); // ✅ Context üzerinden güncelle
     setActiveTask(null);
   };
-
-  const isEmptyBoard = columns.length === 0 || columns.every((col) => col.tasks.length === 0);
 
   return (
     <DndContext
@@ -266,19 +241,16 @@ function BoardColumns({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      
       {isEmptyBoard ? (
         <div className="emptyBoard">
           <h5>This board is empty. Create a new column to get started.</h5>
           <button className="emptyBoardBtn" onClick={openColumnModal}>
             + Add New Column
           </button>
-          
         </div>
-      ) :
-        (
-          <div className="boardColumns">
-            {columns.map((column) => (
+      ) : (
+        <div className="boardColumns">
+          {columns.map((column) => (
             <Column
               key={column.id}
               column={column}
@@ -287,23 +259,22 @@ function BoardColumns({
             />
           ))}
           <button onClick={openColumnModal} className="add-column-btn">
-          + New Column
-        </button>
-      </div>
- )}
-
-        
+            + New Column
+          </button>
+        </div>
+      )}
 
       <DragOverlay>
-        {activeTask && (
+        {activeTask ? (
           <div className="dragged-task">
             <p>{activeTask.title}</p>
             <span className="board-subtasks-info">
-              Subtasks ({activeTask.subtasks.filter((st) => st.isCompleted).length} of{" "}
-              {activeTask.subtasks.length})
+              Subtasks (
+              {activeTask.subtasks?.filter((st) => st.isCompleted).length ?? 0}{" "}
+              of {activeTask.subtasks?.length ?? 0})
             </span>
           </div>
-        )}
+        ) : null}
       </DragOverlay>
     </DndContext>
   );
@@ -321,6 +292,7 @@ function Modal({ children, closeModal }) {
 
 function Column({ column, openColumnModal, openTaskModal }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
+  console.log("Column Props:", column);
 
   return (
     <div

@@ -15,6 +15,11 @@ export function TodoProvider({ children }) {
   const [isEditDeleteBoard, setIsEditDeleteBoard] = useState(false);
   const [isDeleteModal, setIsDeleteModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);  
+  const columns = currentBoard?.columns ?? [];
+  const isEmptyBoard =
+  columns.length === 0 ||
+  columns.every((col) => Array.isArray(col.tasks) && col.tasks.length === 0);
+
 
   useEffect(() => {
     localStorage.setItem("kanbanTodos", JSON.stringify(todos));
@@ -29,7 +34,7 @@ export function TodoProvider({ children }) {
       }
       fetchNotes();
     }
-  }, [todos]);
+  }, []);
 
   function openTaskModal(isEditMode = false, task = null) {
     setEdit(isEditMode);             
@@ -45,11 +50,33 @@ export function TodoProvider({ children }) {
     setIsDeleteModal((prev) => !prev);
   }
 
+  // ✅ Yeni: Kolonları güncelleyen fonksiyon
+  function updateBoardColumns(newColumns) {
+    if (!currentBoard) return;
+  
+    const sanitizedColumns = newColumns.map((col) => ({
+      ...col,
+      tasks: Array.isArray(col.tasks) ? col.tasks : [], // ✅ tasks garantileniyor
+    }));
+  
+    const updatedBoard = { ...currentBoard, columns: sanitizedColumns };
+  
+    setTodos((prevTodos) =>
+      prevTodos.map((board) =>
+        board.id === currentBoard.id ? updatedBoard : board
+      )
+    );
+  
+    setCurrentBoard(updatedBoard); // ✅ Güncellenmiş board anında yansır
+  }
+  
+
   return (
     <TodoContext.Provider value={{
       todos, setTodos, isEdit, setEdit, currentBoard, setCurrentBoard,
       dialogRef, isTaskModalOpen, closeTaskModal, openTaskModal,
-      isEditDeleteBoard, setIsEditDeleteBoard, deleteModal, isDeleteModal, setIsDeleteModal
+      isEditDeleteBoard, setIsEditDeleteBoard, deleteModal, isDeleteModal, setIsDeleteModal,
+      updateBoardColumns, isEmptyBoard, columns
     }}>
       {children}
     </TodoContext.Provider>
